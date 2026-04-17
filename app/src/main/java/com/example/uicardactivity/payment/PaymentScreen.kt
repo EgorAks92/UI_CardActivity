@@ -1,34 +1,29 @@
 package com.example.uicardactivity.payment
 
-import androidx.compose.animation.AnimatedVisibility
+import android.annotation.SuppressLint
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,92 +35,72 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.uicardactivity.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.draw.drawWithContent
 
 private object PaymentColors {
-    val BackgroundTop = Color(0xFF060A17)
-    val BackgroundBottom = Color(0xFF010308)
-    val CenterGlow = Color(0xFF1F4DA7)
+    val BackgroundTop = Color(0xFF020611)
+    val BackgroundBottom = Color(0xFF000205)
 
-    val WaveMain = Color(0xFF87B7FF)
-    val WaveSecondary = Color(0xFF4A78C8)
+    val CenterGlow = Color(0xFF0E5FD8)
+    val SideGlow = Color(0xFF5B39F1)
 
-    val CardGradientStart = Color(0xFF4C74FF)
-    val CardGradientMid = Color(0xFF3A56D8)
-    val CardGradientEnd = Color(0xFF6C3CE8)
+    val WaveMain = Color(0xFF2E7FFF)
+    val WaveGlow = Color(0xFF69B6FF)
 
-    val GlassFill = Color.White.copy(alpha = 0.08f)
-    val GlassBorder = Color.White.copy(alpha = 0.28f)
-    val GlassGlow = Color(0xFF9BC3FF).copy(alpha = 0.14f)
+    val GlassTop = Color(0x66B8D4F5)
+    val GlassBottom = Color(0x4D90B4D8)
+    val GlassStroke = Color(0x55FFFFFF)
 
-    val TextPrimary = Color(0xFFF7FAFF)
-    val TextSecondary = Color(0xFFD1DAEE)
-    val TextHint = Color(0xFFB6C3DB)
-    val QrDark = Color(0xFF0E1A2B)
-}
+    val QrPanelTop = Color(0x88C2DAF3)
+    val QrPanelBottom = Color(0x5A97B0C8)
+    val QrPanelStroke = Color(0x55FFFFFF)
 
-private object PaymentDims {
-    val ScreenHorizontal = 24.dp
-    val TopPadding = 18.dp
+    val TextPrimary = Color(0xFFF7F8FB)
+    val TextSecondary = Color(0xFFE9EDF6)
+    val TextHint = Color(0xFFF0F3F8)
 
-    val CardWidth = 230.dp
-    val CardHeight = 145.dp
-    val CardCorner = 28.dp
-
-    val ActionButtonHeight = 52.dp
-    val ActionButtonCorner = 18.dp
-
-    val QrPanelHeight = 320.dp
-    val QrPanelCorner = 38.dp
-    val QrSize = 214.dp
+    val QrDark = Color(0xFF6E839D)
 }
 
 private object PaymentMotion {
-    const val BackgroundRevealMs = 250
-    const val WavesRevealMs = 350
-    const val CardRevealMs = 1150
-
-    val CardEasing = CubicBezierEasing(0.18f, 0.9f, 0.22f, 1f)
-    val ContentEasing = FastOutSlowInEasing
+    val CardEasing = CubicBezierEasing(0.22f, 0.86f, 0.2f, 1f)
+    val FadeEasing = CubicBezierEasing(0.24f, 0.8f, 0.2f, 1f)
+    val WaveEasing = CubicBezierEasing(0.4f, 0f, 0.2f, 1f)
 }
 
-/*
- * TODO(fonts): add Montserrat binaries locally (do not commit binaries through Codex PR):
- *  - app/src/main/res/font/montserrat_regular.ttf
- *  - app/src/main/res/font/montserrat_medium.ttf
- *  - app/src/main/res/font/montserrat_semibold.ttf
- *  - app/src/main/res/font/montserrat_bold.ttf
- *
- * When files are added locally, replace fallback with:
- * FontFamily(
- *   Font(R.font.montserrat_regular, FontWeight.Normal),
- *   Font(R.font.montserrat_medium, FontWeight.Medium),
- *   Font(R.font.montserrat_semibold, FontWeight.SemiBold),
- *   Font(R.font.montserrat_bold, FontWeight.Bold),
- * )
- */
-private val MontserratFamily = FontFamily.SansSerif
+private val MontserratFamily = FontFamily(
+    Font(R.font.montserrat_regular, FontWeight.Normal),
+    Font(R.font.montserrat_medium, FontWeight.Medium),
+    Font(R.font.montserrat_semibold, FontWeight.SemiBold),
+    Font(R.font.montserrat_bold, FontWeight.Bold),
+)
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun PaymentScreen(
     modifier: Modifier = Modifier,
@@ -135,204 +110,283 @@ fun PaymentScreen(
     onSpqrClick: () -> Unit = {},
     onManualInputClick: () -> Unit = {},
 ) {
-    var showWaves by remember { mutableStateOf(false) }
     var showCard by remember { mutableStateOf(false) }
     var showTitle by remember { mutableStateOf(false) }
     var showAmount by remember { mutableStateOf(false) }
-    var showActions by remember { mutableStateOf(false) }
+    var showButtons by remember { mutableStateOf(false) }
     var showQr by remember { mutableStateOf(false) }
     var showBottom by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        delay(PaymentMotion.BackgroundRevealMs.toLong())
-        showWaves = true
-        delay(PaymentMotion.WavesRevealMs.toLong())
+        delay(100)
         showCard = true
-        delay(170)
+        delay(110)
         showTitle = true
-        delay(130)
+        delay(90)
         showAmount = true
-        delay(130)
-        showActions = true
-        delay(150)
+        delay(110)
+        showButtons = true
+        delay(120)
         showQr = true
-        delay(130)
+        delay(120)
         showBottom = true
     }
 
-    Box(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(
-                brush = Brush.verticalGradient(
+                Brush.verticalGradient(
                     colors = listOf(
                         PaymentColors.BackgroundTop,
-                        PaymentColors.BackgroundBottom,
+                        PaymentColors.BackgroundBottom
                     )
                 )
             )
             .drawWithCache {
-                val radial = Brush.radialGradient(
+                val centerGlow = Brush.radialGradient(
                     colors = listOf(
-                        PaymentColors.CenterGlow.copy(alpha = 0.42f),
-                        PaymentColors.CenterGlow.copy(alpha = 0f),
+                        PaymentColors.CenterGlow.copy(alpha = 0.66f),
+                        PaymentColors.CenterGlow.copy(alpha = 0.22f),
+                        Color.Transparent
                     ),
-                    center = Offset(size.width * 0.5f, size.height * 0.46f),
-                    radius = size.minDimension * 0.7f,
+                    center = Offset(size.width * 0.50f, size.height * 0.42f),
+                    radius = size.minDimension * 0.70f
                 )
+
+                val sideGlow = Brush.radialGradient(
+                    colors = listOf(
+                        PaymentColors.SideGlow.copy(alpha = 0.14f),
+                        Color.Transparent
+                    ),
+                    center = Offset(size.width * 0.84f, size.height * 0.18f),
+                    radius = size.minDimension * 0.34f
+                )
+
+                val bottomShade = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color(0xFF010205).copy(alpha = 0.14f),
+                        Color(0xFF000103).copy(alpha = 0.30f)
+                    ),
+                    startY = size.height * 0.62f,
+                    endY = size.height
+                )
+
                 onDrawBehind {
-                    drawRect(radial)
+                    drawRect(centerGlow)
+                    drawRect(sideGlow)
+                    drawRect(bottomShade)
                 }
             }
     ) {
-        AnimatedVisibility(
-            visible = showWaves,
-            enter = fadeIn(tween(550, easing = PaymentMotion.ContentEasing)),
-            modifier = Modifier.align(Alignment.TopCenter),
-        ) {
-            AnimatedWaves(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(270.dp)
+        val screenWidth = maxWidth
+        val screenHeight = maxHeight
+
+        val designWidth = 720f
+        val designHeight = 1600f
+
+        fun dx(value: Float): Dp = screenWidth * (value / designWidth)
+        fun dy(value: Float): Dp = screenHeight * (value / designHeight)
+        fun fsp(value: Float): TextUnit = (screenHeight.value * value / designHeight).sp
+
+        val buttonWidth = dx(253f)
+        val buttonHeight = dy(177f)
+        val buttonGap = dx(32f)
+        val buttonsTotalWidth = buttonWidth + buttonGap + buttonWidth
+        val buttonsStartX = (screenWidth - buttonsTotalWidth) / 2
+
+        val qrPanelSize = screenWidth * 0.75f
+        val qrPanelX = (screenWidth - qrPanelSize) / 2
+
+        Box(modifier = Modifier.fillMaxSize()) {
+            TopWavesLayer(modifier = Modifier.fillMaxSize())
+
+            TopIconsLayer(
+                backX = dx(34f),
+                backY = dy(80f),
+                closeX = screenWidth - dx(34f) - dx(42f),
+                closeY = dy(80f),
+                iconSize = dx(42f),
+                onBackClick = onBackClick,
+                onCloseClick = onCloseClick
             )
-        }
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = PaymentDims.ScreenHorizontal)
-                .padding(top = PaymentDims.TopPadding, bottom = 14.dp)
-        ) {
-            TopBar(onBackClick = onBackClick, onCloseClick = onCloseClick)
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(168.dp)
-            ) {
-                AnimatedVisibility(
-                    visible = showCard,
-                    enter = fadeIn(tween(350)),
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = 52.dp, y = (-10).dp),
-                ) {
-                    AnimatedCard()
-                }
+            if (showCard) {
+                AnimatedCardLayer(
+                    modifier = Modifier.offset(
+                        x = dx(322f),
+                        y = dy(102f)
+                    ),
+                    width = dx(660f),
+                    height = dy(470f)
+                )
             }
 
-            AnimatedVisibility(
-                visible = showTitle,
-                enter = fadeIn(tween(350)) +
-                    slideInVertically(
-                        animationSpec = tween(430, easing = PaymentMotion.ContentEasing),
-                        initialOffsetY = { it / 3 }
-                    )
-            ) {
+            if (showTitle) {
                 Text(
                     text = "к оплате",
                     color = PaymentColors.TextSecondary,
                     style = TextStyle(
                         fontFamily = MontserratFamily,
                         fontWeight = FontWeight.Medium,
-                        fontSize = 24.sp,
-                        letterSpacing = 0.3.sp,
-                    )
+                        fontSize = fsp(28f),
+                        lineHeight = fsp(28f),
+                        letterSpacing = 0.sp
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = dy(452f))
+                        .wrapContentWidth(Alignment.CenterHorizontally)
                 )
             }
 
-            Spacer(Modifier.height(8.dp))
-
-            AnimatedVisibility(
-                visible = showAmount,
-                enter = fadeIn(tween(420)) +
-                    slideInVertically(
-                        animationSpec = tween(460, easing = PaymentMotion.ContentEasing),
-                        initialOffsetY = { it / 4 }
-                    )
-            ) {
-                AmountBlock(amount = amount)
+            if (showAmount) {
+                Text(
+                    text = amount,
+                    color = PaymentColors.TextPrimary,
+                    style = TextStyle(
+                        fontFamily = MontserratFamily,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = fsp(84f),
+                        lineHeight = fsp(84f),
+                        letterSpacing = (-1.6).sp
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = dy(505f))
+                        .wrapContentWidth(Alignment.CenterHorizontally)
+                )
             }
 
-            Spacer(Modifier.height(20.dp))
-
-            AnimatedVisibility(
-                visible = showActions,
-                enter = fadeIn(tween(360)) +
-                    slideInVertically(
-                        animationSpec = tween(430, easing = PaymentMotion.ContentEasing),
-                        initialOffsetY = { it / 3 }
-                    )
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    GlassActionButton(
-                        text = "СPQR",
-                        modifier = Modifier.weight(1f),
-                        onClick = onSpqrClick
-                    )
-                    GlassActionButton(
-                        text = "ручной ввод",
-                        modifier = Modifier.weight(1f),
-                        onClick = onManualInputClick
-                    )
-                }
+            if (showButtons) {
+                ActionButtonsLayer(
+                    modifier = Modifier.offset(
+                        x = buttonsStartX,
+                        y = dy(700f)
+                    ),
+                    buttonWidth = buttonWidth,
+                    buttonHeight = buttonHeight,
+                    gap = buttonGap,
+                    iconSize = dx(42f),
+                    textSize = fsp(22f),
+                    onSpqrClick = onSpqrClick,
+                    onManualInputClick = onManualInputClick
+                )
             }
 
-            Spacer(Modifier.height(16.dp))
-
-            AnimatedVisibility(
-                visible = showQr,
-                enter = fadeIn(tween(420)) +
-                    slideInVertically(
-                        animationSpec = tween(520, easing = PaymentMotion.ContentEasing),
-                        initialOffsetY = { it / 5 }
-                    )
-            ) {
-                QrPanel(modifier = Modifier.fillMaxWidth())
+            if (showQr) {
+                QrPanelLayer(
+                    modifier = Modifier.offset(
+                        x = qrPanelX,
+                        y = dy(909f)
+                    ),
+                    panelSize = qrPanelSize
+                )
             }
 
-            Spacer(Modifier.weight(1f))
-
-            AnimatedVisibility(
-                visible = showBottom,
-                enter = fadeIn(tween(500)),
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "или вставьте карту",
-                        color = PaymentColors.TextHint,
-                        style = TextStyle(
-                            fontFamily = MontserratFamily,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 16.sp,
-                            letterSpacing = 0.2.sp,
-                        )
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    BottomArrow()
-                }
+            if (showBottom) {
+                BottomHintLayer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .offset(y = dy(1470f))
+                        .wrapContentWidth(Alignment.CenterHorizontally),
+                    textSize = fsp(22f),
+                    arrowWidth = dx(42f),
+                    arrowHeight = dy(34f)
+                )
             }
         }
     }
 }
 
 @Composable
-fun TopBar(
-    onBackClick: () -> Unit,
-    onCloseClick: () -> Unit,
+private fun TopWavesLayer(
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TopBarIconButton(kind = TopIconKind.Back, onClick = onBackClick)
-        TopBarIconButton(kind = TopIconKind.Close, onClick = onCloseClick)
+    val transition = rememberInfiniteTransition(label = "topWaves")
+
+    val progress by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 3600,
+                easing = CubicBezierEasing(0.22f, 0f, 0.18f, 1f)
+            ),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "progress"
+    )
+
+    Canvas(modifier = modifier) {
+        val center = Offset(
+            x = size.width * 0.5f,
+            y = -size.height * 0.04f
+        )
+
+        val ringCount = 5
+        val minRadius = size.width * 0.10f
+        val maxRadius = size.width * 0.62f
+        val strokePx = 2.2f
+        val glowStrokePx = 6.0f
+
+        repeat(ringCount) { index ->
+            val delay = index * 0.13f
+            val local = (progress - delay)
+
+            if (local > 0f) {
+                val clamped = (local / (1f - delay)).coerceIn(0f, 1f)
+                val eased = CubicBezierEasing(0.22f, 0f, 0.18f, 1f).transform(clamped)
+
+                val radius = lerp(minRadius, maxRadius, eased)
+                val alpha = (1f - eased).coerceIn(0f, 1f)
+
+                drawCircle(
+                    color = PaymentColors.WaveMain.copy(alpha = 0.30f * alpha),
+                    radius = radius,
+                    center = center,
+                    style = Stroke(width = strokePx)
+                )
+
+                drawCircle(
+                    color = PaymentColors.WaveGlow.copy(alpha = 0.10f * alpha),
+                    radius = radius + 3f,
+                    center = center,
+                    style = Stroke(width = glowStrokePx)
+                )
+            }
+        }
+    }
+}
+
+private fun lerp(start: Float, stop: Float, fraction: Float): Float {
+    return start + (stop - start) * fraction
+}
+
+@Composable
+private fun TopIconsLayer(
+    backX: Dp,
+    backY: Dp,
+    closeX: Dp,
+    closeY: Dp,
+    iconSize: Dp,
+    onBackClick: () -> Unit,
+    onCloseClick: () -> Unit,
+) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        TopBarIconButton(
+            kind = TopIconKind.Back,
+            onClick = onBackClick,
+            size = iconSize,
+            modifier = Modifier.offset(backX, backY)
+        )
+        TopBarIconButton(
+            kind = TopIconKind.Close,
+            onClick = onCloseClick,
+            size = iconSize,
+            modifier = Modifier.offset(closeX, closeY)
+        )
     }
 }
 
@@ -342,49 +396,50 @@ private enum class TopIconKind { Back, Close }
 private fun TopBarIconButton(
     kind: TopIconKind,
     onClick: () -> Unit,
+    size: Dp,
+    modifier: Modifier = Modifier,
 ) {
     Box(
-        modifier = Modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.08f))
-            .border(1.dp, Color.White.copy(alpha = 0.2f), CircleShape)
+        modifier = modifier
+            .size(size)
             .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.size(18.dp)) {
+        Canvas(modifier = Modifier.size(size)) {
+            val stroke = this.size.minDimension * 0.08f
+
             when (kind) {
                 TopIconKind.Back -> {
                     drawLine(
                         color = Color.White,
-                        start = Offset(size.width * 0.72f, size.height * 0.18f),
-                        end = Offset(size.width * 0.30f, size.height * 0.5f),
-                        strokeWidth = 3f,
-                        cap = StrokeCap.Round,
+                        start = Offset(this.size.width * 0.68f, this.size.height * 0.18f),
+                        end = Offset(this.size.width * 0.32f, this.size.height * 0.50f),
+                        strokeWidth = stroke,
+                        cap = StrokeCap.Round
                     )
                     drawLine(
                         color = Color.White,
-                        start = Offset(size.width * 0.30f, size.height * 0.5f),
-                        end = Offset(size.width * 0.72f, size.height * 0.82f),
-                        strokeWidth = 3f,
-                        cap = StrokeCap.Round,
+                        start = Offset(this.size.width * 0.32f, this.size.height * 0.50f),
+                        end = Offset(this.size.width * 0.68f, this.size.height * 0.82f),
+                        strokeWidth = stroke,
+                        cap = StrokeCap.Round
                     )
                 }
 
                 TopIconKind.Close -> {
                     drawLine(
                         color = Color.White,
-                        start = Offset(size.width * 0.2f, size.height * 0.2f),
-                        end = Offset(size.width * 0.8f, size.height * 0.8f),
-                        strokeWidth = 3f,
-                        cap = StrokeCap.Round,
+                        start = Offset(this.size.width * 0.22f, this.size.height * 0.22f),
+                        end = Offset(this.size.width * 0.78f, this.size.height * 0.78f),
+                        strokeWidth = stroke,
+                        cap = StrokeCap.Round
                     )
                     drawLine(
                         color = Color.White,
-                        start = Offset(size.width * 0.8f, size.height * 0.2f),
-                        end = Offset(size.width * 0.2f, size.height * 0.8f),
-                        strokeWidth = 3f,
-                        cap = StrokeCap.Round,
+                        start = Offset(this.size.width * 0.78f, this.size.height * 0.22f),
+                        end = Offset(this.size.width * 0.22f, this.size.height * 0.78f),
+                        strokeWidth = stroke,
+                        cap = StrokeCap.Round
                     )
                 }
             }
@@ -393,230 +448,458 @@ private fun TopBarIconButton(
 }
 
 @Composable
-fun AnimatedWaves(
+private fun AnimatedCardLayer(
     modifier: Modifier = Modifier,
+    width: Dp,
+    height: Dp,
 ) {
-    val transition = rememberInfiniteTransition(label = "waves")
-    val breath by transition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3800, easing = CubicBezierEasing(0.38f, 0f, 0.62f, 1f)),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "breath"
-    )
+    val translationXAnim = remember { Animatable(220f) }
+    val translationYAnim = remember { Animatable(-180f) }
+    val alphaAnim = remember { Animatable(0f) }
+    val scaleAnim = remember { Animatable(0.86f) }
+    val rotationAnim = remember { Animatable(22f) }
 
-    Canvas(modifier = modifier) {
-        val center = Offset(size.width * 0.5f, size.height * 0.10f + 8f * breath)
-        val baseRadius = size.minDimension * 0.35f
-        val waveCount = 7
+    val auraAlphaAnim = remember { Animatable(0f) }
+    val auraScaleAnim = remember { Animatable(0.82f) }
+    val contactPulseAnim = remember { Animatable(0f) }
 
-        repeat(waveCount) { index ->
-            val fraction = index / waveCount.toFloat()
-            val phaseOffset = (fraction * 0.65f)
-            val animatedFraction = ((breath + phaseOffset) % 1f)
-            val radius = baseRadius + index * size.minDimension * 0.11f + animatedFraction * 20f
-            val alpha = (0.15f - index * 0.016f) + (0.05f * (1f - animatedFraction))
-            val stroke = 1.2.dp.toPx() + (index % 2) * 0.6.dp.toPx()
-            val waveColor = if (index % 2 == 0) PaymentColors.WaveMain else PaymentColors.WaveSecondary
+    val shinePrimary = remember { Animatable(-0.40f) }
+    val shineSecondary = remember { Animatable(-0.55f) }
 
-            drawCircle(
-                color = waveColor.copy(alpha = alpha.coerceAtLeast(0.025f)),
-                radius = radius,
-                center = center,
-                style = Stroke(width = stroke),
+    LaunchedEffect(Unit) {
+        launch {
+            translationXAnim.animateTo(
+                targetValue = -18f,
+                animationSpec = tween(
+                    durationMillis = 980,
+                    easing = CubicBezierEasing(0.14f, 0.92f, 0.16f, 1f)
+                )
             )
+            translationXAnim.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(
+                    durationMillis = 240,
+                    easing = CubicBezierEasing(0.28f, 0f, 0.18f, 1f)
+                )
+            )
+        }
 
-            drawCircle(
-                color = waveColor.copy(alpha = (alpha * 0.22f).coerceAtLeast(0.012f)),
-                radius = radius + 3.dp.toPx(),
-                center = center,
-                style = Stroke(width = stroke * 1.8f),
+        launch {
+            translationYAnim.animateTo(
+                targetValue = 16f,
+                animationSpec = tween(
+                    durationMillis = 1120,
+                    easing = CubicBezierEasing(0.14f, 0.92f, 0.16f, 1f)
+                )
+            )
+            translationYAnim.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(
+                    durationMillis = 260,
+                    easing = CubicBezierEasing(0.28f, 0f, 0.18f, 1f)
+                )
+            )
+        }
+
+        launch {
+            alphaAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 420,
+                    easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
+                )
+            )
+        }
+
+        launch {
+            scaleAnim.animateTo(
+                targetValue = 1.03f,
+                animationSpec = tween(
+                    durationMillis = 980,
+                    easing = CubicBezierEasing(0.14f, 0.92f, 0.16f, 1f)
+                )
+            )
+            scaleAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 240,
+                    easing = CubicBezierEasing(0.28f, 0f, 0.18f, 1f)
+                )
+            )
+        }
+
+        launch {
+            rotationAnim.animateTo(
+                targetValue = 10.8f,
+                animationSpec = tween(
+                    durationMillis = 1180,
+                    easing = CubicBezierEasing(0.14f, 0.92f, 0.16f, 1f)
+                )
+            )
+        }
+
+        launch {
+            auraAlphaAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 760,
+                    easing = CubicBezierEasing(0.20f, 0.8f, 0.18f, 1f)
+                )
+            )
+        }
+
+        launch {
+            auraScaleAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 1040,
+                    easing = CubicBezierEasing(0.14f, 0.86f, 0.16f, 1f)
+                )
+            )
+        }
+
+        delay(980)
+
+        // Эффект "приложили к экрану"
+        launch {
+            scaleAnim.animateTo(
+                targetValue = 0.972f,
+                animationSpec = tween(
+                    durationMillis = 190,
+                    easing = CubicBezierEasing(0.32f, 0f, 0.2f, 1f)
+                )
+            )
+            scaleAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 280,
+                    easing = CubicBezierEasing(0.22f, 0.82f, 0.2f, 1f)
+                )
+            )
+        }
+
+        launch {
+            translationYAnim.animateTo(
+                targetValue = 8f,
+                animationSpec = tween(
+                    durationMillis = 190,
+                    easing = CubicBezierEasing(0.32f, 0f, 0.2f, 1f)
+                )
+            )
+            translationYAnim.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(
+                    durationMillis = 280,
+                    easing = CubicBezierEasing(0.22f, 0.82f, 0.2f, 1f)
+                )
+            )
+        }
+
+        launch {
+            contactPulseAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(
+                    durationMillis = 210,
+                    easing = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
+                )
+            )
+            contactPulseAnim.animateTo(
+                targetValue = 0f,
+                animationSpec = tween(
+                    durationMillis = 320,
+                    easing = CubicBezierEasing(0.22f, 0.82f, 0.2f, 1f)
+                )
+            )
+        }
+
+        delay(140)
+
+        launch {
+            shinePrimary.animateTo(
+                targetValue = 1.18f,
+                animationSpec = tween(
+                    durationMillis = 980,
+                    easing = CubicBezierEasing(0.22f, 0f, 0.18f, 1f)
+                )
+            )
+        }
+
+        delay(180)
+
+        launch {
+            shineSecondary.animateTo(
+                targetValue = 1.18f,
+                animationSpec = tween(
+                    durationMillis = 760,
+                    easing = CubicBezierEasing(0.22f, 0f, 0.18f, 1f)
+                )
+            )
+        }
+    }
+
+    Box(
+        modifier = modifier.size(width = width, height = height)
+    ) {
+        Box(
+            modifier = Modifier
+                .offset(x = (-110).dp, y = (-90).dp)
+                .size(width = width + 220.dp, height = height + 180.dp)
+                .graphicsLayer {
+                    this.translationX = translationXAnim.value
+                    this.translationY = translationYAnim.value
+                    this.alpha = auraAlphaAnim.value * (0.68f + contactPulseAnim.value * 0.18f)
+                    this.scaleX = auraScaleAnim.value + contactPulseAnim.value * 0.03f
+                    this.scaleY = auraScaleAnim.value + contactPulseAnim.value * 0.03f
+                    this.rotationZ = rotationAnim.value
+                    clip = false
+                    transformOrigin = TransformOrigin(0.72f, 0.30f)
+                }
+                .drawWithContent {
+                    val w = size.width
+                    val h = size.height
+
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                Color(0xFF39D3FF).copy(alpha = 0.20f + contactPulseAnim.value * 0.08f),
+                                Color(0xFF39D3FF).copy(alpha = 0.10f),
+                                Color(0xFF39D3FF).copy(alpha = 0.03f),
+                                Color.Transparent
+                            ),
+                            center = Offset(w * 0.26f, h * 0.42f),
+                            radius = w * 0.34f
+                        ),
+                        radius = w * 0.34f,
+                        center = Offset(w * 0.26f, h * 0.42f)
+                    )
+
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                Color(0xFF5F62FF).copy(alpha = 0.18f + contactPulseAnim.value * 0.06f),
+                                Color(0xFF5F62FF).copy(alpha = 0.09f),
+                                Color(0xFF5F62FF).copy(alpha = 0.025f),
+                                Color.Transparent
+                            ),
+                            center = Offset(w * 0.76f, h * 0.56f),
+                            radius = w * 0.38f
+                        ),
+                        radius = w * 0.38f,
+                        center = Offset(w * 0.76f, h * 0.56f)
+                    )
+                }
+        )
+
+        Image(
+            painter = painterResource(id = R.drawable.container_card_full),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    this.translationX = translationXAnim.value
+                    this.translationY = translationYAnim.value
+                    this.alpha = alphaAnim.value
+                    this.scaleX = scaleAnim.value
+                    this.scaleY = scaleAnim.value
+                    this.rotationZ = rotationAnim.value
+                    transformOrigin = TransformOrigin(0.72f, 0.30f)
+                    compositingStrategy = androidx.compose.ui.graphics.CompositingStrategy.Offscreen
+                }
+                .drawWithContent {
+                    drawContent()
+
+                    val cardWidth = size.width
+                    val cardHeight = size.height
+
+                    val primaryBandWidth = cardWidth * 0.09f
+                    val primaryStartX = cardWidth * (shinePrimary.value - 0.06f)
+                    val primaryEndX = primaryStartX + primaryBandWidth
+
+                    drawRoundRect(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color(0x99DDF2FF).copy(alpha = 0.00f),
+                                Color(0x99DDF2FF).copy(alpha = 0.06f),
+                                Color.White.copy(alpha = 0.16f),
+                                Color(0x99DDF2FF).copy(alpha = 0.06f),
+                                Color(0x99DDF2FF).copy(alpha = 0.00f),
+                                Color.Transparent,
+                            ),
+                            start = Offset(primaryStartX, 0f),
+                            end = Offset(primaryEndX, cardHeight)
+                        ),
+                        topLeft = Offset(primaryStartX, 0f),
+                        size = Size(primaryBandWidth, cardHeight),
+                        cornerRadius = CornerRadius(
+                            x = primaryBandWidth * 0.7f,
+                            y = primaryBandWidth * 0.7f
+                        ),
+                        blendMode = androidx.compose.ui.graphics.BlendMode.SrcAtop
+                    )
+
+                    val secondaryBandWidth = cardWidth * 0.08f
+                    val secondaryStartX = cardWidth * (shineSecondary.value - 0.10f)
+                    val secondaryEndX = secondaryStartX + secondaryBandWidth
+
+                    drawRect(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.White.copy(alpha = 0.00f),
+                                Color.White.copy(alpha = 0.08f),
+                                Color.White.copy(alpha = 0.14f),
+                                Color.White.copy(alpha = 0.08f),
+                                Color.White.copy(alpha = 0.00f),
+                                Color.Transparent,
+                            ),
+                            start = Offset(secondaryStartX, 0f),
+                            end = Offset(secondaryEndX, cardHeight)
+                        ),
+                        blendMode = androidx.compose.ui.graphics.BlendMode.SrcAtop
+                    )
+                },
+            contentScale = ContentScale.Fit
+        )
+    }
+}
+
+@Composable
+private fun ActionButtonsLayer(
+    modifier: Modifier = Modifier,
+    buttonWidth: Dp,
+    buttonHeight: Dp,
+    gap: Dp,
+    iconSize: Dp,
+    textSize: TextUnit,
+    onSpqrClick: () -> Unit,
+    onManualInputClick: () -> Unit,
+) {
+    Row(modifier = modifier) {
+        GlassActionButton(
+            text = "СPQR",
+            icon = ActionIcon.Spqr,
+            iconSize = iconSize,
+            textSize = textSize,
+            modifier = Modifier.size(buttonWidth, buttonHeight),
+            onClick = onSpqrClick
+        )
+        Spacer(modifier = Modifier.size(gap))
+        GlassActionButton(
+            text = "ручной ввод",
+            icon = ActionIcon.Card,
+            iconSize = iconSize,
+            textSize = textSize,
+            modifier = Modifier.size(buttonWidth, buttonHeight),
+            onClick = onManualInputClick
+        )
+    }
+}
+
+private enum class ActionIcon { Spqr, Card }
+
+@Composable
+private fun GlassActionButton(
+    text: String,
+    icon: ActionIcon,
+    iconSize: Dp,
+    textSize: TextUnit,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(34.dp))
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        PaymentColors.GlassTop,
+                        PaymentColors.GlassBottom
+                    )
+                )
+            )
+            .border(
+                width = 1.dp,
+                color = PaymentColors.GlassStroke,
+                shape = RoundedCornerShape(34.dp)
+            )
+            .clickable(onClick = onClick)
+    ) {
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(top = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            ActionButtonIcon(
+                icon = icon,
+                modifier = Modifier.size(iconSize)
+            )
+            Spacer(modifier = Modifier.size(18.dp))
+            Text(
+                text = text,
+                color = PaymentColors.TextPrimary,
+                style = TextStyle(
+                    fontFamily = MontserratFamily,
+                    fontWeight = FontWeight.Normal,
+                    fontSize = textSize,
+                    lineHeight = textSize,
+                    letterSpacing = 0.sp
+                ),
+                textAlign = TextAlign.Center
             )
         }
     }
 }
 
 @Composable
-fun AnimatedCard(
+private fun ActionButtonIcon(
+    icon: ActionIcon,
     modifier: Modifier = Modifier,
-    last4: String = "0908",
 ) {
-    val translationX = remember { Animatable(72f) }
-    val translationY = remember { Animatable(-62f) }
-    val alpha = remember { Animatable(0f) }
-    val scale = remember { Animatable(0.93f) }
-    val rotation = remember { Animatable(13f) }
-
-    LaunchedEffect(Unit) {
-        val cardSpec = tween<Float>(
-            durationMillis = PaymentMotion.CardRevealMs,
-            easing = PaymentMotion.CardEasing,
-        )
-        launch { translationX.animateTo(0f, animationSpec = cardSpec) }
-        launch { translationY.animateTo(0f, animationSpec = cardSpec) }
-        launch { alpha.animateTo(1f, animationSpec = tween(900, easing = PaymentMotion.CardEasing)) }
-        launch { scale.animateTo(1f, animationSpec = tween(1000, easing = PaymentMotion.CardEasing)) }
-        launch { rotation.animateTo(7.5f, animationSpec = tween(1150, easing = PaymentMotion.CardEasing)) }
+    val iconRes = when (icon) {
+        ActionIcon.Spqr -> R.drawable.ic_spqr_custom
+        ActionIcon.Card -> R.drawable.ic_card_custom
     }
 
+    Image(
+        painter = painterResource(id = iconRes),
+        contentDescription = null,
+        modifier = modifier,
+        contentScale = ContentScale.Fit
+    )
+}
+
+@Composable
+private fun QrPanelLayer(
+    modifier: Modifier = Modifier,
+    panelSize: Dp,
+) {
     Box(
         modifier = modifier
-            .size(width = PaymentDims.CardWidth, height = PaymentDims.CardHeight)
-            .graphicsLayer {
-                this.translationX = translationX.value
-                this.translationY = translationY.value
-                this.alpha = alpha.value
-                this.scaleX = scale.value
-                this.scaleY = scale.value
-                this.rotationZ = rotation.value
-                transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.62f, 0.35f)
-            }
-            .clip(RoundedCornerShape(PaymentDims.CardCorner))
+            .size(panelSize)
+            .clip(RoundedCornerShape(42.dp))
             .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        PaymentColors.CardGradientStart,
-                        PaymentColors.CardGradientMid,
-                        PaymentColors.CardGradientEnd,
+                Brush.linearGradient(
+                    listOf(
+                        PaymentColors.QrPanelTop,
+                        PaymentColors.QrPanelBottom
                     )
                 )
             )
             .border(
                 width = 1.dp,
-                color = Color.White.copy(alpha = 0.24f),
-                shape = RoundedCornerShape(PaymentDims.CardCorner),
-            )
-            .drawBehind {
-                val w = size.width
-                val h = size.height
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        listOf(Color.White.copy(alpha = 0.24f), Color.Transparent),
-                        center = Offset(w * 0.22f, h * 0.24f),
-                        radius = h * 0.58f,
-                    ),
-                    radius = h * 0.58f,
-                    center = Offset(w * 0.22f, h * 0.24f)
-                )
-            }
-            .padding(horizontal = 20.dp, vertical = 18.dp)
-    ) {
-        Text(
-            text = "••••  ••••  ••••",
-            color = Color.White.copy(alpha = 0.72f),
-            style = TextStyle(
-                fontFamily = MontserratFamily,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 14.sp,
-                letterSpacing = 1.6.sp,
+                color = PaymentColors.QrPanelStroke,
+                shape = RoundedCornerShape(42.dp)
             ),
-            modifier = Modifier.align(Alignment.BottomStart),
-        )
-        Text(
-            text = last4,
-            color = Color.White,
-            style = TextStyle(
-                fontFamily = MontserratFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                letterSpacing = 1.4.sp,
-            ),
-            modifier = Modifier.align(Alignment.BottomEnd),
-        )
-    }
-}
-
-@Composable
-fun AmountBlock(amount: String, modifier: Modifier = Modifier) {
-    Column(modifier = modifier) {
-        Text(
-            text = amount,
-            color = PaymentColors.TextPrimary,
-            style = TextStyle(
-                fontFamily = MontserratFamily,
-                fontWeight = FontWeight.Bold,
-                fontSize = 52.sp,
-                letterSpacing = 0.25.sp,
-                lineHeight = 56.sp,
-            )
-        )
-    }
-}
-
-@Composable
-fun GlassActionButton(
-    text: String,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    Box(
-        modifier = modifier
-            .requiredHeight(PaymentDims.ActionButtonHeight)
-            .clip(RoundedCornerShape(PaymentDims.ActionButtonCorner))
-            .background(PaymentColors.GlassFill)
-            .border(
-                width = 1.dp,
-                color = PaymentColors.GlassBorder,
-                shape = RoundedCornerShape(PaymentDims.ActionButtonCorner),
-            )
-            .drawBehind {
-                drawRect(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            PaymentColors.GlassGlow,
-                            Color.Transparent,
-                            PaymentColors.GlassGlow.copy(alpha = 0.04f),
-                        )
-                    )
-                )
-            }
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = text,
-            color = PaymentColors.TextPrimary,
-            style = TextStyle(
-                fontFamily = MontserratFamily,
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 16.sp,
-                letterSpacing = 0.2.sp,
-            ),
-            textAlign = TextAlign.Center,
+        Image(
+            painter = painterResource(id = R.drawable.qr_custom),
+            contentDescription = null,
+            modifier = Modifier.size(panelSize * 0.82f),
+            contentScale = ContentScale.Fit
         )
-    }
-}
-
-@Composable
-fun QrPanel(
-    modifier: Modifier = Modifier,
-    qrCells: Int = 25,
-) {
-    Box(
-        modifier = modifier
-            .height(PaymentDims.QrPanelHeight)
-            .clip(RoundedCornerShape(PaymentDims.QrPanelCorner))
-            .background(Color.White.copy(alpha = 0.065f))
-            .border(
-                width = 1.dp,
-                color = Color.White.copy(alpha = 0.22f),
-                shape = RoundedCornerShape(PaymentDims.QrPanelCorner),
-            )
-            .drawBehind {
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.11f),
-                            Color.Transparent,
-                        )
-                    )
-                )
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        DecorativeQr(size = PaymentDims.QrSize, cells = qrCells)
     }
 }
 
@@ -628,28 +911,31 @@ private fun DecorativeQr(
     Canvas(
         modifier = Modifier
             .size(size)
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(28.dp))
             .background(Color.White.copy(alpha = 0.98f))
-            .padding(12.dp)
+            .padding(14.dp)
     ) {
-        val totalSize = this.size.minDimension
-        val cell = totalSize / cells
+        val total = this.size.minDimension
+        val cell = total / cells
 
         fun drawFinder(startX: Int, startY: Int) {
-            drawRect(
+            drawRoundRect(
                 color = PaymentColors.QrDark,
                 topLeft = Offset(startX * cell, startY * cell),
                 size = Size(cell * 7f, cell * 7f),
+                cornerRadius = CornerRadius(cell * 0.8f, cell * 0.8f)
             )
-            drawRect(
+            drawRoundRect(
                 color = Color.White,
                 topLeft = Offset((startX + 1) * cell, (startY + 1) * cell),
                 size = Size(cell * 5f, cell * 5f),
+                cornerRadius = CornerRadius(cell * 0.7f, cell * 0.7f)
             )
-            drawRect(
+            drawRoundRect(
                 color = PaymentColors.QrDark,
                 topLeft = Offset((startX + 2) * cell, (startY + 2) * cell),
                 size = Size(cell * 3f, cell * 3f),
+                cornerRadius = CornerRadius(cell * 0.6f, cell * 0.6f)
             )
         }
 
@@ -660,58 +946,81 @@ private fun DecorativeQr(
         for (y in 0 until cells) {
             for (x in 0 until cells) {
                 val inFinder = (x in 0..6 && y in 0..6) ||
-                    (x in cells - 7 until cells && y in 0..6) ||
-                    (x in 0..6 && y in cells - 7 until cells)
+                        (x in cells - 7 until cells && y in 0..6) ||
+                        (x in 0..6 && y in cells - 7 until cells)
 
                 if (inFinder) continue
 
                 val seed = (x * 31 + y * 17 + x * y * 13) % 11
-                val draw = seed < 4 || (x + y) % 9 == 0
-                if (draw) {
+                val shouldDraw = seed < 4 || (x + y) % 9 == 0
+                if (shouldDraw) {
                     drawRoundRect(
                         color = PaymentColors.QrDark,
                         topLeft = Offset(x * cell, y * cell),
                         size = Size(cell * 0.92f, cell * 0.92f),
-                        cornerRadius = CornerRadius(cell * 0.18f)
+                        cornerRadius = CornerRadius(cell * 0.20f, cell * 0.20f)
                     )
                 }
             }
         }
-
-        val path = Path().apply {
-            moveTo(totalSize * 0.3f, totalSize * 0.52f)
-            lineTo(totalSize * 0.46f, totalSize * 0.66f)
-            lineTo(totalSize * 0.71f, totalSize * 0.37f)
-        }
-        drawPath(
-            path = path,
-            color = PaymentColors.QrDark.copy(alpha = 0.7f),
-            style = Stroke(width = cell * 1.1f, cap = StrokeCap.Round)
-        )
     }
 }
 
 @Composable
-private fun BottomArrow() {
-    Canvas(modifier = Modifier.size(width = 28.dp, height = 18.dp)) {
-        drawLine(
-            color = Color.White.copy(alpha = 0.68f),
-            start = Offset(size.width * 0.1f, size.height * 0.2f),
-            end = Offset(size.width * 0.5f, size.height * 0.82f),
-            strokeWidth = 4f,
-            cap = StrokeCap.Round,
+private fun BottomHintLayer(
+    modifier: Modifier = Modifier,
+    textSize: TextUnit,
+    arrowWidth: Dp,
+    arrowHeight: Dp,
+) {
+    val transition = rememberInfiniteTransition(label = "arrowPulse")
+    val pulse by transition.animateFloat(
+        initialValue = 0.90f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(
+                durationMillis = 1100,
+                easing = CubicBezierEasing(0.4f, 0f, 0.2f, 1f)
+            ),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "или вставьте карту",
+            color = PaymentColors.TextHint,
+            style = TextStyle(
+                fontFamily = MontserratFamily,
+                fontWeight = FontWeight.Normal,
+                fontSize = textSize,
+                lineHeight = textSize,
+                letterSpacing = 0.sp
+            )
         )
-        drawLine(
-            color = Color.White.copy(alpha = 0.68f),
-            start = Offset(size.width * 0.9f, size.height * 0.2f),
-            end = Offset(size.width * 0.5f, size.height * 0.82f),
-            strokeWidth = 4f,
-            cap = StrokeCap.Round,
+
+        Spacer(modifier = Modifier.size(14.dp))
+
+        Image(
+            painter = painterResource(id = R.drawable.ic_bottom_arrow_custom),
+            contentDescription = null,
+            modifier = Modifier
+                .size(width = arrowWidth, height = arrowHeight)
+                .graphicsLayer {
+                    alpha = pulse
+                    scaleX = pulse
+                    scaleY = pulse
+                },
+            contentScale = ContentScale.Fit
         )
     }
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF040815)
+@Preview(showBackground = true, backgroundColor = 0xFF020611, widthDp = 360, heightDp = 800)
 @Composable
 private fun PaymentScreenPreview() {
     PaymentScreen()
