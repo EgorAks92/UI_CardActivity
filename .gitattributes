@@ -1,0 +1,22 @@
+* text=auto eol=lf
+
+# Keep common source/project files as text.
+*.kt text
+*.kts text
+*.gradle text
+*.xml text
+*.md text
+*.properties text
+
+# Explicit binary patterns.
+*.jar binary
+*.aar binary
+*.so binary
+*.ttf binary
+*.otf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.pdf binary
+*.keystore binary
