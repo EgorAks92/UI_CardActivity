@@ -109,6 +109,21 @@ private object PaymentMotion {
     val ContentEasing = FastOutSlowInEasing
 }
 
+/*
+ * TODO(fonts): add Montserrat binaries locally (do not commit binaries through Codex PR):
+ *  - app/src/main/res/font/montserrat_regular.ttf
+ *  - app/src/main/res/font/montserrat_medium.ttf
+ *  - app/src/main/res/font/montserrat_semibold.ttf
+ *  - app/src/main/res/font/montserrat_bold.ttf
+ *
+ * When files are added locally, replace fallback with:
+ * FontFamily(
+ *   Font(R.font.montserrat_regular, FontWeight.Normal),
+ *   Font(R.font.montserrat_medium, FontWeight.Medium),
+ *   Font(R.font.montserrat_semibold, FontWeight.SemiBold),
+ *   Font(R.font.montserrat_bold, FontWeight.Bold),
+ * )
+ */
 private val MontserratFamily = FontFamily.SansSerif
 
 @Composable
