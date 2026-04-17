@@ -66,25 +66,25 @@ private object PaymentColors {
     val BackgroundTop = Color(0xFF020611)
     val BackgroundBottom = Color(0xFF000205)
 
-    val CenterGlow = Color(0xFF0E5FD8)
-    val SideGlow = Color(0xFF5B39F1)
+    val CenterGlow = Color(0xFF176FC6)
+    val SideGlow = Color(0xFF4C55D9)
 
-    val WaveMain = Color(0xFF2E7FFF)
-    val WaveGlow = Color(0xFF69B6FF)
+    val WaveMain = Color(0xFF4B95E6)
+    val WaveGlow = Color(0xFF9FD0FF)
 
-    val GlassTop = Color(0x66B8D4F5)
-    val GlassBottom = Color(0x4D90B4D8)
-    val GlassStroke = Color(0x55FFFFFF)
+    val GlassTop = Color.White.copy(alpha = 0.22f)
+    val GlassBottom = Color.White.copy(alpha = 0.12f)
+    val GlassStroke = Color.White.copy(alpha = 0.28f)
 
-    val QrPanelTop = Color(0x88C2DAF3)
-    val QrPanelBottom = Color(0x5A97B0C8)
-    val QrPanelStroke = Color(0x55FFFFFF)
+    val QrPanelTop = Color.White.copy(alpha = 0.24f)
+    val QrPanelBottom = Color.White.copy(alpha = 0.14f)
+    val QrPanelStroke = Color.White.copy(alpha = 0.26f)
 
     val TextPrimary = Color(0xFFF7F8FB)
-    val TextSecondary = Color(0xFFE9EDF6)
-    val TextHint = Color(0xFFF0F3F8)
+    val TextSecondary = Color(0xFFE7EDF7)
+    val TextHint = Color(0xFFEAF0F8)
 
-    val QrDark = Color(0xFF6E839D)
+    val QrDark = Color(0xFF5E7490)
 }
 
 private object PaymentMotion {
@@ -202,15 +202,17 @@ fun PaymentScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             TopWavesLayer(modifier = Modifier.fillMaxSize())
 
-            TopIconsLayer(
-                backX = dx(34f),
-                backY = dy(80f),
-                closeX = screenWidth - dx(34f) - dx(42f),
-                closeY = dy(80f),
-                iconSize = dx(42f),
-                onBackClick = onBackClick,
-                onCloseClick = onCloseClick
-            )
+            Box(modifier = Modifier.fillMaxSize()) {
+                TopBarIconButton(
+                    kind = TopIconKind.Close,
+                    onClick = onCloseClick,
+                    size = dx(42f),
+                    modifier = Modifier.offset(
+                        x = screenWidth - dx(34f) - dx(42f),
+                        y = dy(30f)
+                    )
+                )
+            }
 
             if (showCard) {
                 AnimatedCardLayer(
@@ -289,7 +291,7 @@ fun PaymentScreen(
                 BottomHintLayer(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .offset(y = dy(1470f))
+                        .offset(y = dy(1500f))
                         .wrapContentWidth(Alignment.CenterHorizontally),
                     textSize = fsp(22f),
                     arrowWidth = dx(42f),
@@ -809,7 +811,7 @@ private fun GlassActionButton(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(34.dp))
+            .clip(RoundedCornerShape(30.dp))
             .background(
                 Brush.linearGradient(
                     listOf(
@@ -821,7 +823,7 @@ private fun GlassActionButton(
             .border(
                 width = 1.dp,
                 color = PaymentColors.GlassStroke,
-                shape = RoundedCornerShape(34.dp)
+                shape = RoundedCornerShape(30.dp)
             )
             .clickable(onClick = onClick)
     ) {
@@ -878,7 +880,7 @@ private fun QrPanelLayer(
     Box(
         modifier = modifier
             .size(panelSize)
-            .clip(RoundedCornerShape(42.dp))
+            .clip(RoundedCornerShape(30.dp))
             .background(
                 Brush.linearGradient(
                     listOf(
@@ -890,7 +892,7 @@ private fun QrPanelLayer(
             .border(
                 width = 1.dp,
                 color = PaymentColors.QrPanelStroke,
-                shape = RoundedCornerShape(42.dp)
+                shape = RoundedCornerShape(30.dp)
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -904,69 +906,6 @@ private fun QrPanelLayer(
 }
 
 @Composable
-private fun DecorativeQr(
-    size: Dp,
-    cells: Int,
-) {
-    Canvas(
-        modifier = Modifier
-            .size(size)
-            .clip(RoundedCornerShape(28.dp))
-            .background(Color.White.copy(alpha = 0.98f))
-            .padding(14.dp)
-    ) {
-        val total = this.size.minDimension
-        val cell = total / cells
-
-        fun drawFinder(startX: Int, startY: Int) {
-            drawRoundRect(
-                color = PaymentColors.QrDark,
-                topLeft = Offset(startX * cell, startY * cell),
-                size = Size(cell * 7f, cell * 7f),
-                cornerRadius = CornerRadius(cell * 0.8f, cell * 0.8f)
-            )
-            drawRoundRect(
-                color = Color.White,
-                topLeft = Offset((startX + 1) * cell, (startY + 1) * cell),
-                size = Size(cell * 5f, cell * 5f),
-                cornerRadius = CornerRadius(cell * 0.7f, cell * 0.7f)
-            )
-            drawRoundRect(
-                color = PaymentColors.QrDark,
-                topLeft = Offset((startX + 2) * cell, (startY + 2) * cell),
-                size = Size(cell * 3f, cell * 3f),
-                cornerRadius = CornerRadius(cell * 0.6f, cell * 0.6f)
-            )
-        }
-
-        drawFinder(0, 0)
-        drawFinder(cells - 7, 0)
-        drawFinder(0, cells - 7)
-
-        for (y in 0 until cells) {
-            for (x in 0 until cells) {
-                val inFinder = (x in 0..6 && y in 0..6) ||
-                        (x in cells - 7 until cells && y in 0..6) ||
-                        (x in 0..6 && y in cells - 7 until cells)
-
-                if (inFinder) continue
-
-                val seed = (x * 31 + y * 17 + x * y * 13) % 11
-                val shouldDraw = seed < 4 || (x + y) % 9 == 0
-                if (shouldDraw) {
-                    drawRoundRect(
-                        color = PaymentColors.QrDark,
-                        topLeft = Offset(x * cell, y * cell),
-                        size = Size(cell * 0.92f, cell * 0.92f),
-                        cornerRadius = CornerRadius(cell * 0.20f, cell * 0.20f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun BottomHintLayer(
     modifier: Modifier = Modifier,
     textSize: TextUnit,
@@ -975,7 +914,7 @@ private fun BottomHintLayer(
 ) {
     val transition = rememberInfiniteTransition(label = "arrowPulse")
     val pulse by transition.animateFloat(
-        initialValue = 0.90f,
+        initialValue = 0.200f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
             animation = tween(
